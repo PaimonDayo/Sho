@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>恋愛ゲーム</title>
+    <!-- Google FontsからYusei Magicを読み込む -->
+    <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のスタイル */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Yusei Magic', sans-serif;
+            background-color: #f0e6f6; /* パステルカラーの背景色 */
+            color: #333;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 背景画像 */
+        #background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+        }
+
+        /* キャラクター画像 */
+        #character {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30%;
+            z-index: 2;
+        }
+
+        /* テキストウィンドウ */
+        #text-window {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 3;
+        }
+
+        /* テキスト表示 */
+        #dialogue {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            white-space: pre-wrap; /* 改行を有効に */
+        }
+
+        /* 選択肢ボタン */
+        .choice-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #fff;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .choice-button:hover {
+            background-color: #ffd1dc;
+            transform: scale(1.05);
+        }
+
+        /* 名前入力画面 */
+        #name-input-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(240, 230, 246, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 4;
+        }
+
+        #name-input-screen h1 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            color: #6a0dad;
+        }
+
+        #player-name {
+            padding: 10px;
+            font-size: 1.2em;
+            border: 2px solid #6a0dad;
+            border-radius: 5px;
+            width: 200px;
+            text-align: center;
+        }
+
+        #start-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #6a0dad;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        #start-button:hover {
+            background-color: #7a1ead;
+            transform: scale(1.05);
+        }
+
+        /* エンディング画像 */
+        #ending-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: 5;
+            display: none;
+        }
+
+        /* フェードイン効果 */
+        .fade-in {
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 背景画像 -->
+        <div id="background"></div>
+
+        <!-- キャラクター画像 -->
+        <img id="character" src="" alt="Character">
+
+        <!-- テキストウィンドウ -->
+        <div id="text-window">
+            <div id="dialogue"></div>
+            <div id="choices"></div>
+        </div>
+
+        <!-- 名前入力画面 -->
+        <div id="name-input-screen">
+            <h1>あなたの名前を入力してください</h1>
+            <input type="text" id="player-name" placeholder="名前を入力">
+            <button id="start-button">決定</button>
+        </div>
+
+        <!-- エンディング画像 -->
+        <div id="ending-image"></div>
+    </div>
+
+    <script>
+        // ゲームのシナリオデータ
+        const scenes = [
+            {
+                id: 'start',
+                background: 'koutei.png',
+                character: 'nomal.png',
+                dialogue: 'Tさん: 「わあ、すごいね！みんな本気出してきたね！」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'koutei_convo'
+                    }
+                ]
+            },
+            {
+                id: 'koutei_convo',
+                background: 'koutei.png',
+                character: 'nomal.png',
+                dialogue: '僕: 「…うん、すごいね。」\nTさん: 「でもさ、私たちのチームも負けられないよね！○○くんも、もっと声出して応援しよ！」\n僕: 「うん、頑張ろう。」\nTさん: 「そうだね！一緒に力を合わせて勝ち取ろう！」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'culture_festival'
+                    }
+                ]
+            },
+            {
+                id: 'culture_festival',
+                background: 'rouka.png',
+                character: 'nomal.png',
+                dialogue: 'Tさん: 「ねえ、これちょっと手伝ってくれない？この看板、重くて…」\n僕: 「う、うん、わかった。」\nTさん: 「ありがと！○○くんって、力持ちだね！こんなこと頼んで悪いけど、助かるよ。」\n僕: 「…いや、そんなことないよ。」\nTさん: 「大丈夫だよ、助かるから！」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'table_tennis'
+                    }
+                ]
+            },
+            {
+                id: 'table_tennis',
+                background: 'kyositsu.png',
+                character: 'nomal.png',
+                dialogue: 'Tさん: 「あ、卓球かぁ！○○くんはどう？得意？」',
+                choices: [
+                    {
+                        text: '「Tさん、卓球上手だね」',
+                        nextScene: 'table_tennis_success',
+                        affinityChange: +15
+                    },
+                    {
+                        text: '「卓球って難しいよね、Tさん」',
+                        nextScene: 'table_tennis_normal',
+                        affinityChange: 0
+                    },
+                    {
+                        text: '（静かに卓球をやる）',
+                        nextScene: 'table_tennis_fail',
+                        affinityChange: -5
+                    }
+                ]
+            },
+            {
+                id: 'table_tennis_success',
+                background: 'kyositsu.png',
+                character: 'egao.png',
+                dialogue: 'Tさん: 「ありがとう！でも、そんなに上手くないよ…。○○くんも結構うまいと思うけど？」\n僕: 「そうかな…。君とペアになれて楽しいよ。」\nTさん: 「ふふっ、なんだかペアになれて嬉しいね！」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'final_week'
+                    }
+                ]
+            },
+            {
+                id: 'table_tennis_normal',
+                background: 'kyositsu.png',
+                character: 'nomal.png',
+                dialogue: 'Tさん: 「うん、でも楽しいよね！○○くんも楽しんでる？」\n僕: 「そうだね、楽しいよ。」\nTさん: 「これからも一緒に頑張ろうね！」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'final_week'
+                    }
+                ]
+            },
+            {
+                id: 'table_tennis_fail',
+                background: 'kyositsu.png',
+                character: 'odoroki.png',
+                dialogue: 'Tさん: 「…（何か話しかけようとして、結局そのまま授業が終わる）」\n僕: 「（心の中で）うまく話しかけられなかった…」',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'final_week'
+                    }
+                ]
+            },
+            {
+                id: 'final_week',
+                background: 'kyositsu.png',
+                character: 'nomal.png',
+                dialogue: '（高校生活最後の週が始まる…）',
+                choices: [
+                    {
+                        text: '次へ',
+                        nextScene: 'confession'
+                    }
+                ]
+            },
+            {
+                id: 'confession',
+                background: 'yuyake.png',
+                character: 'nomal.png',
+                dialogue: '（告白のタイミングがやってくる…）',
+                choices: [
+                    {
+                        text: '月曜日から木曜日に告白する',
+                        nextScene: 'confess_early'
+                    },
+                    {
+                        text: '金曜日に告白する',
+                        nextScene: 'confess_late'
+                    },
+                    {
+                        text: '告白しない',
+                        nextScene: 'bad_end'
+                    }
+                ]
+            },
+            {
+                id: 'confess_early',
+                background: 'yuyake.png',
+                character: 'nomal.png',
+                dialogue: '僕: 「あの、ずっと君のことが気になってて…好きなんだ。」\nTさん: 「えっ、…○○くん、私もずっと気になってた。でも、なかなか言い出せなくて…。ありがとう、嬉しい。」\nTさん: 「でも、早すぎる告白だとちょっと戸惑うかも…。」',
+                choices: [
+                    {
+                        text: 'ハッピーエンドへ',
+                        nextScene: 'happy_end'
+                    }
+                ]
+            },
+            {
+                id: 'confess_late',
+                background: 'yuyake.png',
+                character: 'nomal.png',
+                dialogue: '僕: 「このままじゃ、卒業しても後悔すると思って…ずっと君が好きだったんだ。」\nTさん: 「私も、ずっと○○くんのこと気になってた。でも、言えなくて…。ありがとう。」\nTさん: 「私もずっと同じ気持ちだったの。」',
+                choices: [
+                    {
+                        text: 'ハッピーエンドへ',
+                        nextScene: 'happy_end'
+                    }
+                ]
+            },
+            {
+                id: 'bad_end',
+                background: 'badend.png',
+                character: '',
+                dialogue: '（告白をしなかったため、Tさんは勉強のために学校に来なくなり、別れを迎える。主人公は後悔と寂しさを感じながら卒業を迎える。）',
+                choices: [
+                    {
+                        text: 'ゲーム終了',
+                        nextScene: null
+                    }
+                ]
+            },
+            {
+                id: 'happy_end',
+                background: 'happyend.png',
+                character: '',
+                dialogue: '（告白が成功し、Tさんと正式に付き合うことになった。二人は卒業後も一緒に歩んでいくことを誓い合う。）',
+                choices: [
+                    {
+                        text: 'ゲーム終了',
+                        nextScene: null
+                    }
+                ]
+            }
+        ];
+
+        let currentScene = 'start';
+        let playerName = '';
+        let tableTennisChoice = null;
+        let confessionDay = '';
+
+        const background = document.getElementById('background');
+        const character = document.getElementById('character');
+        const dialogue = document.getElementById('dialogue');
+        const choices = document.getElementById('choices');
+        const nameInputScreen = document.getElementById('name-input-screen');
+        const playerNameInput = document.getElementById('player-name');
+        const startButton = document.getElementById('start-button');
+        const endingImage = document.getElementById('ending-image');
+
+        // ゲーム開始ボタンのイベントリスナー
+        startButton.addEventListener('click', () => {
+            const name = playerNameInput.value.trim();
+            if (name === '') {
+                alert('名前を入力してください。');
+                return;
+            }
+            playerName = name;
+            nameInputScreen.style.display = 'none';
+            loadScene(currentScene);
+        });
+
+        // シーンをロードする関数
+        function loadScene(sceneId) {
+            const scene = scenes.find(s => s.id === sceneId);
+            if (!scene) {
+                console.error('シーンが見つかりません:', sceneId);
+                return;
+            }
+
+            // 背景画像を設定
+            background.style.backgroundImage = `url('${scene.background}')`;
+
+            // キャラクター画像を設定
+            if (scene.character) {
+                character.src = scene.character;
+                character.style.display = 'block';
+            } else {
+                character.style.display = 'none';
+            }
+
+            // ダイアログテキストを設定
+            dialogue.innerHTML = scene.dialogue.replace(/○○くん/g, playerName);
+
+            // 選択肢をクリア
+            choices.innerHTML = '';
+
+            // 選択肢を生成
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.classList.add('choice-button');
+                button.textContent = choice.text;
+                button.addEventListener('click', () => {
+                    // 好感度の変動があれば適用
+                    if (choice.affinityChange !== undefined) {
+                        tableTennisChoice = choice.affinityChange;
+                    }
+
+                    if (choice.nextScene) {
+                        currentScene = choice.nextScene;
+                        loadScene(currentScene);
+                    } else {
+                        // エンディング画像を表示
+                        endingImage.style.backgroundImage = `url('${scene.background}')`;
+                        endingImage.classList.add('fade-in');
+                        endingImage.style.display = 'block';
+                        // ゲームを終了
+                        choices.innerHTML = '';
+                        dialogue.innerHTML = scene.dialogue.replace(/○○くん/g, playerName);
+                    }
+                });
+                choices.appendChild(button);
+            });
+        }
+
+        // 告白シーンの結果を判定する関数
+        function determineEnding(confessionDay) {
+            if (tableTennisChoice === +15) {
+                // 卓球シーンで「Tさん、卓球上手だね」を選んだ場合
+                return 'happy_end';
+            } else {
+                // 通常ルート
+                if (confessionDay === 'Friday') {
+                    return 'happy_end';
+                } else {
+                    return 'bad_end';
+                }
+            }
+        }
+
+        // 初期シーンのロード
+        loadScene(currentScene);
+    </script>
+</body>
+</html>
