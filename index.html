@@ -44,8 +44,6 @@
             left: 50%;
             transform: translateX(-50%);
             width: 30%;
-            max-width: 1536px;
-            height: auto;
             z-index: 2;
             transition: opacity 0.5s ease-in-out;
         }
@@ -65,42 +63,45 @@
             border-top: 2px solid #6a0dad;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
+        }
+
+        /* 話者の表示 */
+        #speaker {
+            font-weight: bold;
+            margin-bottom: 10px;
         }
 
         /* テキスト表示 */
         #dialogue {
+            flex: 1;
+            overflow-y: auto;
             white-space: pre-wrap; /* 改行を有効に */
-            cursor: pointer;
             position: relative;
-            overflow-wrap: break-word;
         }
 
-        /* テキストエフェクト */
-        .typing {
-            display: inline-block;
-            overflow: hidden;
-            white-space: nowrap;
-            border-right: 0.15em solid orange;
-            animation: typing 0.5s steps(30, end), blink-caret 0.75s step-end infinite;
-        }
-
-        @keyframes typing {
-            from { width: 0 }
-            to { width: 100% }
-        }
-
-        @keyframes blink-caret {
-            from, to { border-color: transparent }
-            50% { border-color: orange }
-        }
-
-        /* 選択肢ボタン */
-        #choices {
-            margin-top: 20px;
+        /* 次へボタン */
+        #next-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background-color: #6a0dad;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s, transform 0.2s;
             display: none; /* 初期は非表示 */
         }
 
+        #next-button:hover {
+            background-color: #7a1ead;
+            transform: scale(1.05);
+        }
+
+        /* 選択肢ボタン */
         .choice-button {
             display: block;
             width: 100%;
@@ -149,10 +150,10 @@
             font-size: 1.5em;
             border: 3px solid #6a0dad;
             border-radius: 10px;
-            width: 300px;
+            width: 80%;
+            max-width: 300px;
             text-align: center;
             outline: none;
-            max-width: 80%;
         }
 
         #start-button {
@@ -197,24 +198,26 @@
         @media (max-width: 768px) {
             #character {
                 width: 50%;
-                bottom: 15%;
+                bottom: 25%;
             }
 
-            #dialogue {
+            #text-window {
                 font-size: 1em;
+                padding: 15px;
+            }
+
+            #next-button, .choice-button {
+                font-size: 0.9em;
+                padding: 10px 15px;
             }
 
             #player-name {
-                width: 80%;
+                font-size: 1.2em;
             }
 
             #start-button {
-                width: 80%;
-            }
-
-            .choice-button {
-                font-size: 0.9em;
-                padding: 10px;
+                font-size: 1.2em;
+                padding: 10px 20px;
             }
         }
     </style>
@@ -229,8 +232,9 @@
 
         <!-- テキストウィンドウ -->
         <div id="text-window">
+            <div id="speaker"></div>
             <div id="dialogue"></div>
-            <div id="choices"></div>
+            <button id="next-button">次へ</button>
         </div>
 
         <!-- 名前入力画面 -->
@@ -246,21 +250,21 @@
 
     <script>
         // ゲームのシナリオデータ
-        const scenes = [
-            {
-                id: 'start',
-                background: 'gasshou.png',
+        const scenes = {
+            'start': {
+                background: 'images/gasshou.png',
                 character: '',
-                dialogue: [
-                    { text: '（高校2年生の春…。合唱コンクールの季節だった。）' },
-                    { text: '教室には、Tさんがクラスの前で指揮をとる姿があった。' },
-                    { text: '彼女の声が響く。「さあ、みんな！もっと声を出して！」' },
-                    { text: '僕は、教室の隅で彼女の姿をじっと見つめていた。' },
-                    { text: '（あの笑顔…クラスのみんなを引っ張って、あんなに輝いてる…）' },
-                    { text: 'みんなが楽しそうに歌っているのに、僕はただ、Tさんに目が行く。' },
-                    { text: '（どうして、こんなに目が離せないんだろう…。ただのクラスメイトなのに…。）' },
-                    { text: 'その瞬間、何かが心の中で弾けたようだった。' },
-                    { text: '（もしかして…僕は、彼女のことが…。）' }
+                speaker: '',
+                lines: [
+                    '（高校2年生の春…。合唱コンクールの季節だった。）',
+                    '教室には、Tさんがクラスの前で指揮をとる姿があった。',
+                    '彼女の声が響く。「さあ、みんな！もっと声を出して！」',
+                    '僕は、教室の隅で彼女の姿をじっと見つめていた。',
+                    '（あの笑顔…クラスのみんなを引っ張って、あんなに輝いてる…）',
+                    'みんなが楽しそうに歌っているのに、僕はただ、Tさんに目が行く。',
+                    '（どうして、こんなに目が離せないんだろう…。ただのクラスメイトなのに…。）',
+                    'その瞬間、何かが心の中で弾けたようだった。',
+                    '（もしかして…僕は、彼女のことが…。）'
                 ],
                 choices: [
                     {
@@ -269,44 +273,46 @@
                     }
                 ]
             },
-            {
-                id: 'sports_festival',
-                background: 'koutei.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '体育祭の日、クラスメイトたちは元気よく準備をしていた。' },
-                    { text: 'その中心には、やっぱりTさんがいた。' },
-                    { text: '「みんな、ここに集まって！次の競技の打ち合わせをしよう！」と、Tさんの明るい声が響く。' },
-                    { text: '（彼女は、本当にすごいな…。誰とでも自然に話せて、みんなをまとめる力がある。）' },
-                    { text: '僕は遠くから彼女を見つめるだけだった。' },
-                    { text: '（でも、僕には話しかける勇気なんてない。何を話したらいいのかさえ分からない。）' },
-                    { text: 'Tさんは笑顔で他のクラスメイトたちと談笑していた。' },
-                    { text: '（その笑顔…いつか僕もあんな風に話せる日が来るのかな…。）' }
+            'sports_festival': {
+                background: 'images/koutei.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '体育祭の日、クラスメイトたちは元気よく準備をしていた。',
+                    'その中心には、やっぱりTさんがいた。',
+                    '「みんな、ここに集まって！次の競技の打ち合わせをしよう！」と、Tさんの明るい声が響く。',
+                    '（彼女は、本当にすごいな…。誰とでも自然に話せて、みんなをまとめる力がある。）',
+                    '僕は遠くから彼女を見つめるだけだった。',
+                    '（でも、僕には話しかける勇気なんてない。何を話したらいいのかさえ分からない。）',
+                    'Tさんは笑顔で他のクラスメイトたちと談笑していた。',
+                    '（その笑顔…いつか僕もあんな風に話せる日が来るのかな…。）'
                 ],
                 choices: [
                     {
-                        text: '「Tさん、今日の準備は順調？」',
-                        nextScene: 'sports_festival_choice1'
+                        text: '「準備、順調？」',
+                        nextScene: 'sports_festival_choice1',
+                        affinityChange: 10
                     },
                     {
-                        text: '「体育祭、楽しみだね！」',
-                        nextScene: 'sports_festival_choice2'
+                        text: '「楽しみだね！」',
+                        nextScene: 'sports_festival_choice2',
+                        affinityChange: 0
                     },
                     {
                         text: '（何も言わない）',
-                        nextScene: 'sports_festival_choice3'
+                        nextScene: 'sports_festival_choice3',
+                        affinityChange: -10
                     }
                 ]
             },
-            // 体育祭の選択肢シーン
-            {
-                id: 'sports_festival_choice1',
-                background: 'koutei.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「Tさん、今日の準備は順調？」' },
-                    { text: 'Tさん: 「ありがとう、○○くん！おかげでみんなも楽しく準備できてるよ！」' },
-                    { text: '（少し話せた…。でも、まだ距離はある。）' }
+            'sports_festival_choice1': {
+                background: 'images/koutei.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「準備、順調？」',
+                    'Tさん: 「ありがとう、○○くん！おかげでみんなも楽しく準備できてるよ！」',
+                    '（少し話せた…。でも、まだ距離はある。）'
                 ],
                 choices: [
                     {
@@ -315,14 +321,14 @@
                     }
                 ]
             },
-            {
-                id: 'sports_festival_choice2',
-                background: 'koutei.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「体育祭、楽しみだね！」' },
-                    { text: 'Tさん: 「うん！みんなで一生懸命頑張るから、きっと素敵な思い出になるよ！」' },
-                    { text: '（会話が少し弾んだ気がする…。）' }
+            'sports_festival_choice2': {
+                background: 'images/koutei.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「楽しみだね！」',
+                    'Tさん: 「うん！みんなで一生懸命頑張るから、きっと素敵な思い出になるよ！」',
+                    '（会話が少し弾んだ気がする…。）'
                 ],
                 choices: [
                     {
@@ -331,14 +337,14 @@
                     }
                 ]
             },
-            {
-                id: 'sports_festival_choice3',
-                background: 'koutei.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕は何も言わず、ただTさんを見つめるだけだった。' },
-                    { text: 'Tさんは気づいた様子で「○○くん、元気？」と微笑んでくれた。' },
-                    { text: '（もう少し話せるようになりたい…。）' }
+            'sports_festival_choice3': {
+                background: 'images/koutei.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕は何も言わず、ただTさんを見つめるだけだった。',
+                    'Tさんは気づいた様子で「○○くん、元気？」と微笑んでくれた。',
+                    '（もう少し話せるようになりたい…。）'
                 ],
                 choices: [
                     {
@@ -347,14 +353,14 @@
                     }
                 ]
             },
-            {
-                id: 'sports_festival_end',
-                background: 'koutei.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '体育祭は無事に成功し、クラス全員が一体感を感じることができた。' },
-                    { text: 'Tさんのリーダーシップが光る一日だった。' },
-                    { text: '（また一つ、Tさんとの距離が縮まった気がする。）' }
+            'sports_festival_end': {
+                background: 'images/koutei.png',
+                character: 'images/nomal.png',
+                speaker: '',
+                lines: [
+                    '体育祭は無事に成功し、クラス全員が一体感を感じることができた。',
+                    'Tさんのリーダーシップが光る一日だった。',
+                    '（また一つ、Tさんとの距離が縮まった気がする。）'
                 ],
                 choices: [
                     {
@@ -363,45 +369,47 @@
                     }
                 ]
             },
-            {
-                id: 'culture_festival',
-                background: 'rouka.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '文化祭の準備が進む中、クラスメイトたちはそれぞれの役割に従って作業を進めていた。' },
-                    { text: 'Tさんは、やはり中心になってみんなを指示している。' },
-                    { text: '「ねえ、○○くん！この看板を一緒に運んでくれない？」突然、Tさんが僕に話しかけた。' },
-                    { text: '僕は驚きながらも「う、うん、いいよ」と答えた。' },
-                    { text: '（Tさんが、僕に話しかけた…。）' },
-                    { text: '彼女と一緒に看板を運びながら、なんとか会話を続けようとしたが、言葉がなかなか出てこなかった。' },
-                    { text: '（どうしよう…何を話せばいいんだろう？）' },
-                    { text: 'Tさんが笑いながら「ありがとう！助かったよ」と言ってくれた。' },
-                    { text: '（やっぱり、彼女はみんなに優しいんだ。）' }
+            'culture_festival': {
+                background: 'images/rouka.png',
+                character: 'images/nomal.png',
+                speaker: '',
+                lines: [
+                    '文化祭の準備が進む中、クラスメイトたちはそれぞれの役割に従って作業を進めていた。',
+                    'Tさんは、やはり中心になってみんなを指示している。',
+                    '「ねえ、○○くん！この看板を一緒に運んでくれない？」突然、Tさんが僕に話しかけた。',
+                    '僕は驚きながらも「う、うん、いいよ」と答えた。',
+                    '（Tさんが、僕に話しかけた…。）',
+                    '彼女と一緒に看板を運びながら、なんとか会話を続けようとしたが、言葉がなかなか出てこなかった。',
+                    '（どうしよう…何を話せばいいんだろう？）',
+                    'Tさんが笑いながら「ありがとう！助かったよ」と言ってくれた。',
+                    '（やっぱり、彼女はみんなに優しいんだ。）'
                 ],
                 choices: [
                     {
-                        text: '「Tさん、この看板大きいね！」',
-                        nextScene: 'culture_festival_choice1'
+                        text: '「この看板、大きいね！」',
+                        nextScene: 'culture_festival_choice1',
+                        affinityChange: 10
                     },
                     {
-                        text: '「文化祭、頑張ろうね！」',
-                        nextScene: 'culture_festival_choice2'
+                        text: '「頑張ろうね！」',
+                        nextScene: 'culture_festival_choice2',
+                        affinityChange: 5
                     },
                     {
                         text: '（何も言わない）',
-                        nextScene: 'culture_festival_choice3'
+                        nextScene: 'culture_festival_choice3',
+                        affinityChange: -20
                     }
                 ]
             },
-            // 文化祭の選択肢シーン
-            {
-                id: 'culture_festival_choice1',
-                background: 'rouka.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「Tさん、この看板大きいね！」' },
-                    { text: 'Tさん: 「うん、これで来場者にしっかりアピールできると思うの！」' },
-                    { text: '（少し話せた…。）' }
+            'culture_festival_choice1': {
+                background: 'images/rouka.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「この看板、大きいね！」',
+                    'Tさん: 「うん、これで来場者にしっかりアピールできると思うの！」',
+                    '（少し話せた…。）'
                 ],
                 choices: [
                     {
@@ -410,14 +418,14 @@
                     }
                 ]
             },
-            {
-                id: 'culture_festival_choice2',
-                background: 'rouka.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「文化祭、頑張ろうね！」' },
-                    { text: 'Tさん: 「うん、一緒に頑張ろう！」' },
-                    { text: '（会話が少し弾んだ気がする…。）' }
+            'culture_festival_choice2': {
+                background: 'images/rouka.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「頑張ろうね！」',
+                    'Tさん: 「うん、一緒に頑張ろう！」',
+                    '（会話が少し弾んだ気がする…。）'
                 ],
                 choices: [
                     {
@@ -426,14 +434,14 @@
                     }
                 ]
             },
-            {
-                id: 'culture_festival_choice3',
-                background: 'rouka.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕は何も言わず、ただTさんと一緒に看板を運んだ。' },
-                    { text: 'Tさんは「○○くん、手伝ってくれてありがとう！」と笑顔で感謝してくれた。' },
-                    { text: '（もう少し話せるようになりたい…。）' }
+            'culture_festival_choice3': {
+                background: 'images/rouka.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕は何も言わず、ただTさんと一緒に看板を運んだ。',
+                    'Tさんは「○○くん、手伝ってくれてありがとう！」と笑顔で感謝してくれた。',
+                    '（もう少し話せるようになりたい…。）'
                 ],
                 choices: [
                     {
@@ -442,14 +450,14 @@
                     }
                 ]
             },
-            {
-                id: 'culture_festival_end',
-                background: 'rouka.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '文化祭は無事に成功し、クラス全員が達成感を味わうことができた。' },
-                    { text: 'Tさんの協力があったからこそ、素晴らしいイベントになった。' },
-                    { text: '（また一つ、Tさんとの距離が縮まった気がする。）' }
+            'culture_festival_end': {
+                background: 'images/rouka.png',
+                character: 'images/nomal.png',
+                speaker: '',
+                lines: [
+                    '文化祭は無事に成功し、クラス全員が達成感を味わうことができた。',
+                    'Tさんの協力があったからこそ、素晴らしいイベントになった。',
+                    '（また一つ、Tさんとの距離が縮まった気がする。）'
                 ],
                 choices: [
                     {
@@ -458,25 +466,25 @@
                     }
                 ]
             },
-            {
-                id: 'table_tennis',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '体育の時間、卓球のローテーションが回ってきた。偶然、Tさんと同じコートに立つことになった。' },
-                    { text: 'Tさんが「○○くん、卓球得意？」と笑顔で聞いてきた。' },
-                    { text: '（えっ、いきなりそんなこと聞かれるなんて…。）' }
+            'table_tennis': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '体育の時間、卓球のローテーションが回ってきた。偶然、Tさんと同じコートに立つことになった。',
+                    'Tさんが「○○くん、卓球得意？」と笑顔で聞いてきた。',
+                    '（えっ、いきなりそんなこと聞かれるなんて…。）'
                 ],
                 choices: [
                     {
-                        text: '「Tさん、卓球上手だね」',
+                        text: '「卓球、上手だね」',
                         nextScene: 'table_tennis_success',
-                        affinityChange: +10
+                        affinityChange: 10
                     },
                     {
-                        text: '「卓球って難しいよね、Tさん」',
+                        text: '「卓球、難しいよね」',
                         nextScene: 'table_tennis_normal',
-                        affinityChange: 0
+                        affinityChange: 5
                     },
                     {
                         text: '（静かに卓球をやる）',
@@ -485,14 +493,14 @@
                     }
                 ]
             },
-            {
-                id: 'table_tennis_success',
-                background: 'kyositsu.png',
-                character: 'egao.png',
-                dialogue: [
-                    { text: 'Tさんが笑顔で「ありがとう！でも、そんなに上手くないよ」と照れくさそうに答えた。' },
-                    { text: '僕は少し緊張しながらも、会話が続いた。' },
-                    { text: '（こうやって自然に話せる日が来るなんて…）' }
+            'table_tennis_success': {
+                background: 'images/kyositsu.png',
+                character: 'images/egao.png',
+                speaker: 'Tさん',
+                lines: [
+                    'Tさんが笑顔で「ありがとう！でも、そんなに上手くないよ」と照れくさそうに答えた。',
+                    '僕は少し緊張しながらも、会話が続いた。',
+                    '（こうやって自然に話せる日が来るなんて…）'
                 ],
                 choices: [
                     {
@@ -501,14 +509,14 @@
                     }
                 ]
             },
-            {
-                id: 'table_tennis_normal',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: 'Tさんが笑顔で「うん、確かに難しいけど、楽しいよね！」と答えた。' },
-                    { text: '僕は「そうだね」と返し、会話はそれほど続かなかった。' },
-                    { text: '（まだ話し足りない気がするけど、これでいいのかな…。）' }
+            'table_tennis_normal': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    'Tさんが笑顔で「うん、確かに難しいけど、楽しいよね！」と答えた。',
+                    '僕は「そうだね」と返し、会話はそれほど続かなかった。',
+                    '（まだ話し足りない気がするけど、これでいいのかな…。）'
                 ],
                 choices: [
                     {
@@ -517,13 +525,13 @@
                     }
                 ]
             },
-            {
-                id: 'table_tennis_fail',
-                background: 'kyositsu.png',
-                character: 'odoroki.png',
-                dialogue: [
-                    { text: 'Tさんが「…（何か話しかけようとして、結局そのまま授業が終わる）」' },
-                    { text: '僕は「（心の中で）うまく話しかけられなかった…」' }
+            'table_tennis_fail': {
+                background: 'images/kyositsu.png',
+                character: 'images/odoroki.png',
+                speaker: 'Tさん',
+                lines: [
+                    'Tさんが「…（何か話しかけようとして、結局そのまま授業が終わる）」',
+                    '僕は「（心の中で）うまく話しかけられなかった…」'
                 ],
                 choices: [
                     {
@@ -532,15 +540,15 @@
                     }
                 ]
             },
-            {
-                id: 'final_week_intro',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '（高校生活最後の週が始まる…）' },
-                    { text: 'Tさんが「○○くん、最後の週だね。何か特別なこと、したい？」と笑顔で聞いてきた。' },
-                    { text: '僕は「うーん、まだ決めてないけど…」と答えた。' },
-                    { text: 'Tさんが「私、少しだけ学校を楽しもうと思ってるんだ。一緒にどう？」と誘ってくれた。' }
+            'final_week_intro': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: '',
+                lines: [
+                    '（高校生活最後の週が始まる…）',
+                    'Tさんが「○○くん、最後の週だね。何か特別なこと、したい？」と笑顔で聞いてきた。',
+                    '僕は「うーん、まだ決めてないけど…」と答えた。',
+                    'Tさんが「私、少しだけ学校を楽しもうと思ってるんだ。一緒にどう？」と誘ってくれた。'
                 ],
                 choices: [
                     {
@@ -549,140 +557,129 @@
                     }
                 ]
             },
-            // 月曜日のシーン
-            {
-                id: 'final_week_monday',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '月曜日の朝、いつもと変わらない日常が始まった。' },
-                    { text: 'Tさんが「おはよう！○○くん、今日も頑張ろうね」と明るく声をかけてきた。' },
-                    { text: '（普通の日常のはずなのに、今日が特別な日になるかもしれない…。）' },
-                    { text: '授業が終わり、ふとTさんが僕の方に近づいてきた。「今日、少しだけ話せる？」' }
+            'final_week_monday': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '月曜日の朝、いつもと変わらない日常が始まった。',
+                    'Tさんが「おはよう！○○くん、今日も頑張ろうね」と明るく声をかけてきた。',
+                    '（普通の日常のはずなのに、今日が特別な日になるかもしれない…。）',
+                    '授業が終わり、ふとTさんが僕の方に近づいてきた。「今日、少しだけ話せる？」'
                 ],
                 choices: [
                     {
                         text: '告白する',
                         nextScene: 'confess_monday',
-                        affinityChange: +20
+                        affinityChange: 10
                     },
                     {
                         text: '告白しない',
-                        nextScene: 'bad_end',
-                        affinityChange: -50
+                        nextScene: 'bad_end'
                     }
                 ]
             },
-            // 火曜日のシーン
-            {
-                id: 'final_week_tuesday',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '火曜日の朝がやってきた。' },
-                    { text: 'Tさんが「○○くん、今日はどんな気分？」と元気よく話しかけてきた。' },
-                    { text: '僕は「今日は少し緊張してるかな」と答えた。' },
-                    { text: 'Tさんが「そうなんだ。私も少し緊張してるよ。でも、一緒に頑張ろうね！」と微笑んだ。' }
+            'final_week_tuesday': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '火曜日の朝がやってきた。',
+                    'Tさんが「○○くん、今日はどんな気分？」と元気よく話しかけてきた。',
+                    '僕は「今日は少し緊張してるかな」と答えた。',
+                    'Tさんが「そうなんだ。私も少し緊張してるよ。でも、一緒に頑張ろうね！」と微笑んだ。'
                 ],
                 choices: [
                     {
                         text: '告白する',
                         nextScene: 'confess_tuesday',
-                        affinityChange: +15
+                        affinityChange: 10
                     },
                     {
                         text: '告白しない',
-                        nextScene: 'bad_end',
-                        affinityChange: -50
+                        nextScene: 'bad_end'
                     }
                 ]
             },
-            // 水曜日のシーン
-            {
-                id: 'final_week_wednesday',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '水曜日の朝、いつもの教室。' },
-                    { text: 'Tさんが「○○くん、最近どうしてる？」と話しかけてきた。' },
-                    { text: '僕は「元気だよ。Tさんは？」と答えた。' },
-                    { text: 'Tさんが「私も元気！最近、新しい趣味を始めたんだ。○○くんも何か始めてみない？」と提案してきた。' }
+            'final_week_wednesday': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '水曜日の朝、いつもの教室。',
+                    'Tさんが「○○くん、最近どうしてる？」と話しかけてきた。',
+                    '僕は「元気だよ。Tさんは？」と答えた。',
+                    'Tさんが「私も元気！最近、新しい趣味を始めたんだ。○○くんも何か始めてみない？」と提案してきた。'
                 ],
                 choices: [
                     {
                         text: '告白する',
                         nextScene: 'confess_wednesday',
-                        affinityChange: +10
+                        affinityChange: 10
                     },
                     {
                         text: '告白しない',
-                        nextScene: 'bad_end',
-                        affinityChange: -50
+                        nextScene: 'bad_end'
                     }
                 ]
             },
-            // 木曜日のシーン
-            {
-                id: 'final_week_thursday',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '木曜日の朝、Tさんが「○○くん、今日は特別な日なんだって？」と尋ねてきた。' },
-                    { text: '僕は「うん、実は…」と口ごもった。' },
-                    { text: 'Tさんが「何？話してみて」と優しく促してくれた。' }
+            'final_week_thursday': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '木曜日の朝、Tさんが「○○くん、今日は特別な日なんだって？」と尋ねてきた。',
+                    '僕は「うん、実は…」と口ごもった。',
+                    'Tさんが「何？話してみて」と優しく促してくれた。'
                 ],
                 choices: [
                     {
                         text: '告白する',
                         nextScene: 'confess_thursday',
-                        affinityChange: +10
+                        affinityChange: 10
                     },
                     {
                         text: '告白しない',
-                        nextScene: 'bad_end',
-                        affinityChange: -50
+                        nextScene: 'bad_end'
                     }
                 ]
             },
-            // 金曜日のシーン
-            {
-                id: 'final_week_friday',
-                background: 'kyositsu.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '金曜日の朝、もうすぐ卒業式が始まる。' },
-                    { text: 'Tさんが「○○くん、もうすぐ卒業だね。何をする予定？」と話しかけてきた。' },
-                    { text: '僕は「まだ決めてないけど…」と答えた。' },
-                    { text: 'Tさんが「私もまだ決めてないけど、一緒に何かやろうよ」と提案してきた。' }
+            'final_week_friday': {
+                background: 'images/kyositsu.png',
+                character: 'images/nomal.png',
+                speaker: 'Tさん',
+                lines: [
+                    '金曜日の朝、もうすぐ卒業式が始まる。',
+                    'Tさんが「○○くん、もうすぐ卒業だね。何をする予定？」と話しかけてきた。',
+                    '僕は「まだ決めてないけど…」と答えた。',
+                    'Tさんが「私もまだ決めてないけど、一緒に何かやろうよ」と提案してきた。'
                 ],
                 choices: [
                     {
                         text: '告白する',
                         nextScene: 'confess_friday',
-                        affinityChange: +30
+                        affinityChange: 10
                     },
                     {
                         text: '告白しない',
-                        nextScene: 'bad_end',
-                        affinityChange: -50
+                        nextScene: 'no_end'
                     }
                 ]
             },
-            // 月曜日の告白シーン
-            {
-                id: 'confess_monday',
-                background: 'yuyake.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「このままじゃ、卒業しても後悔すると思って…ずっとTさんのことが好きだったんだ。」' },
-                    { text: 'Tさんは一瞬、驚いたように目を見開いたけれど、すぐに少し恥ずかしそうに笑った。' },
-                    { text: 'Tさん: 「…○○くん、実は私も…ずっと君のこと気になってた。でも、言えなかった…。ありがとう。」' },
-                    { text: '（その言葉を聞いた瞬間、僕の胸の中で何かが溶けるような感覚が広がった。）' },
-                    { text: 'Tさん: 「これからも、ずっと一緒にいようね。」' },
-                    { text: '夕陽が窓から差し込む教室で、僕たちは未来を見つめ合った。' },
-                    { text: '「ありがとう、Tさん。これからも、ずっと君を大切にするよ。」' },
-                    { text: 'Tさん: 「私も…一緒に歩んでいこうね。」' },
-                    { text: '（これ以上の幸せはない、そう確信した。）' }
+            'confess_monday': {
+                background: 'images/yuyake.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「このままじゃ、卒業しても後悔すると思って…ずっとTさんのことが好きだったんだ。」',
+                    'Tさんは一瞬、驚いたように目を見開いたけれど、すぐに少し恥ずかしそうに笑った。',
+                    'Tさん: 「…○○くん、実は私も…ずっと君のこと気になってた。でも、言えなかった…。ありがとう。」',
+                    '（その言葉を聞いた瞬間、僕の胸の中で何かが溶けるような感覚が広がった。）',
+                    'Tさん: 「これからも、ずっと一緒にいようね。」',
+                    '夕陽が窓から差し込む教室で、僕たちは未来を見つめ合った。',
+                    '「ありがとう、Tさん。これからも、ずっと君を大切にするよ。」',
+                    'Tさん: 「私も…一緒に歩んでいこうね。」',
+                    '（これ以上の幸せはない、そう確信した。）'
                 ],
                 choices: [
                     {
@@ -691,17 +688,16 @@
                     }
                 ]
             },
-            // 火曜日の告白シーン
-            {
-                id: 'confess_tuesday',
-                background: 'yuyake.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「Tさん、ずっと君のことが好きだったんだ。」' },
-                    { text: 'Tさんは少し困ったような表情を浮かべた。' },
-                    { text: '「…○○くん、ごめんね。そんな風に考えたことはなかったの。」' },
-                    { text: '心に冷たい風が吹いたような感覚がした。それでも、Tさんは優しい声で「これからも友達でいようね」と言ってくれた。' },
-                    { text: '僕は無理に笑顔を作り、「そうだね、ありがとう」と答えた。' }
+            'confess_tuesday': {
+                background: 'images/yuyake.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「Tさん、ずっと君のことが好きだったんだ。」',
+                    'Tさんは少し困ったような表情を浮かべた。',
+                    '「…○○くん、ごめんね。そんな風に考えたことはなかったの。」',
+                    '心に冷たい風が吹いたような感覚がした。それでも、Tさんは優しい声で「これからも友達でいようね」と言ってくれた。',
+                    '僕は無理に笑顔を作り、「そうだね、ありがとう」と答えた。'
                 ],
                 choices: [
                     {
@@ -710,17 +706,16 @@
                     }
                 ]
             },
-            // 水曜日の告白シーン
-            {
-                id: 'confess_wednesday',
-                background: 'yuyake.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「Tさん、実は…君のことが好きです。」' },
-                    { text: 'Tさんは一瞬黙り込んだが、優しい笑顔で「○○くん、私も同じ気持ちだった。でも、言い出せなくて…」と答えてくれた。' },
-                    { text: 'その瞬間、僕の心は温かく満たされた。' },
-                    { text: '「本当に…？」と驚きと喜びを込めて尋ねると、Tさんは頷いた。' },
-                    { text: '「うん、これからも一緒にいようね。」' }
+            'confess_wednesday': {
+                background: 'images/yuyake.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「Tさん、実は…君のことが好きです。」',
+                    'Tさんは一瞬黙り込んだが、優しい笑顔で「○○くん、私も同じ気持ちだった。でも、言い出せなくて…」と答えてくれた。',
+                    'その瞬間、僕の心は温かく満たされた。',
+                    '「本当に…？」と驚きと喜びを込めて尋ねると、Tさんは頷いた。',
+                    '「うん、これからも一緒にいようね。」'
                 ],
                 choices: [
                     {
@@ -729,17 +724,16 @@
                     }
                 ]
             },
-            // 木曜日の告白シーン
-            {
-                id: 'confess_thursday',
-                background: 'yuyake.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「Tさん、ずっと君に伝えたかったんだ。好きです。」' },
-                    { text: 'Tさんは少し驚いた表情を浮かべたが、すぐに穏やかな笑顔を見せた。' },
-                    { text: '「○○くん、私も同じ気持ちだった。でも、もうすぐ卒業だから…」' },
-                    { text: '僕は「でも、今伝えなきゃ後悔すると思ったんだ」と言い、Tさんの手を握った。' },
-                    { text: 'Tさんは「ありがとう、○○くん。私もこれから一緒に歩んでいきたい」と答えてくれた。' }
+            'confess_thursday': {
+                background: 'images/yuyake.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「Tさん、ずっと君に伝えたかったんだ。好きです。」',
+                    'Tさんは少し驚いた表情を浮かべたが、すぐに穏やかな笑顔を見せた。',
+                    '「○○くん、私も同じ気持ちだった。でも、もうすぐ卒業だから…」',
+                    '僕は「でも、今伝えなきゃ後悔すると思ったんだ」と言い、Tさんの手を握った。',
+                    'Tさんは「ありがとう、○○くん。私もこれから一緒に歩んでいきたい」と答えてくれた。'
                 ],
                 choices: [
                     {
@@ -748,22 +742,20 @@
                     }
                 ]
             },
-            // 金曜日の告白シーン
-            {
-                id: 'confess_friday',
-                background: 'yuyake.png',
-                character: 'nomal.png',
-                dialogue: [
-                    { text: '僕: 「このままじゃ、卒業しても後悔すると思って…ずっとTさんのことが好きだったんだ。」' },
-                    { text: 'Tさんは一瞬、驚いたように目を見開いたが、すぐに優しい笑顔を見せた。' },
-                    { text: '「私も、ずっと○○くんのこと気になってた。でも、言えなくて…。ありがとう。」' },
-                    { text: 'その瞬間、僕の心は安堵と喜びで満たされた。' },
-                    { text: '「本当に…？」と尋ねると、Tさんは頷きながら「うん、これからも一緒にいようね」と答えてくれた。' },
-                    { text: '夕陽が窓から差し込む教室で、僕たちは未来を見つめ合った。' },
-                    { text: 'この瞬間が、これからの僕たちの始まりだと確信した。' },
-                    { text: '「ありがとう、Tさん。これからも、ずっと君を大切にするよ。」' },
-                    { text: 'Tさん: 「私も…一緒に歩んでいこうね。」' },
-                    { text: '（これ以上の幸せはない、そう確信した。）' }
+            'confess_friday': {
+                background: 'images/yuyake.png',
+                character: 'images/nomal.png',
+                speaker: '僕',
+                lines: [
+                    '僕: 「このままじゃ、卒業しても後悔すると思って…ずっとTさんのことが好きだったんだ。」',
+                    'Tさんは一瞬、驚いたように目を見開いたが、すぐに優しい笑顔を見せた。',
+                    '「私も、ずっと○○くんのこと気になってた。でも、言えなくて…。ありがとう。」',
+                    'その瞬間、僕の心は安堵と喜びで満たされた。',
+                    '「本当に…？」と尋ねると、Tさんは頷きながら「うん、これからも一緒にいようね」と答えてくれた。',
+                    '夕陽が窓から差し込む教室で、僕たちは未来を見つめ合った。この瞬間が、これからの僕たちの始まりだと確信した。',
+                    '「ありがとう、Tさん。これからも、ずっと君を大切にするよ。」',
+                    'Tさん: 「私も…一緒に歩んでいこうね。」',
+                    '（これ以上の幸せはない、そう確信した。）'
                 ],
                 choices: [
                     {
@@ -772,13 +764,12 @@
                     }
                 ]
             },
-            // ハッピーエンド
-            {
-                id: 'happy_end',
-                background: 'happyend.png',
+            'happy_end': {
+                background: 'images/happyend.png',
                 character: '',
-                dialogue: [
-                    { text: '（告白が成功し、Tさんと正式に付き合うことになった。二人は卒業後も一緒に歩んでいくことを誓い合う。）' }
+                speaker: '',
+                lines: [
+                    '（告白が成功し、Tさんと正式に付き合うことになった。二人は卒業後も一緒に歩んでいくことを誓い合う。）'
                 ],
                 choices: [
                     {
@@ -787,13 +778,26 @@
                     }
                 ]
             },
-            // バッドエンド
-            {
-                id: 'bad_end',
-                background: 'badend.png',
+            'bad_end': {
+                background: 'images/badend.png',
                 character: '',
-                dialogue: [
-                    { text: '（告白をしなかったため、Tさんは勉強のために学校に来なくなり、別れを迎える。主人公は後悔と寂しさを感じながら卒業を迎える。）' }
+                speaker: '',
+                lines: [
+                    '（告白をしなかったため、Tさんは勉強のために学校に来なくなり、別れを迎える。主人公は後悔と寂しさを感じながら卒業を迎える。）'
+                ],
+                choices: [
+                    {
+                        text: 'ゲーム終了',
+                        nextScene: null
+                    }
+                ]
+            },
+            'no_end': {
+                background: 'images/noend.png',
+                character: '',
+                speaker: '',
+                lines: [
+                    '（告白をしなかったため、Tさんとの関係は自然と疎遠になり、卒業を迎える。主人公は自分の気持ちに気づかなかったことを後悔する。）'
                 ],
                 choices: [
                     {
@@ -802,24 +806,28 @@
                     }
                 ]
             }
-        ];
+        };
 
         let currentScene = 'start';
+        let currentLine = 0;
         let playerName = '';
         let affinity = 50; // 初期好感度
-        const affinityThreshold = 0; // 好感度がこれを下回るとバッドエンド
+        let confessionFailed = false; // 告白失敗条件
 
         const background = document.getElementById('background');
         const character = document.getElementById('character');
+        const speaker = document.getElementById('speaker');
         const dialogue = document.getElementById('dialogue');
-        const choicesContainer = document.getElementById('choices');
+        const nextButton = document.getElementById('next-button');
         const nameInputScreen = document.getElementById('name-input-screen');
         const playerNameInput = document.getElementById('player-name');
         const startButton = document.getElementById('start-button');
         const endingImage = document.getElementById('ending-image');
 
-        let currentDialogueIndex = 0;
+        // テキスト表示の速度（ミリ秒）
+        const textSpeed = 30;
         let isTyping = false;
+        let typingTimeout;
 
         // ゲーム開始ボタンのイベントリスナー
         startButton.addEventListener('click', () => {
@@ -835,119 +843,181 @@
 
         // シーンをロードする関数
         function loadScene(sceneId) {
-            let scene = scenes.find(s => s.id === sceneId);
+            currentScene = sceneId;
+            currentLine = 0;
+            renderScene();
+        }
 
+        // シーンをレンダリングする関数
+        function renderScene() {
+            const scene = scenes[currentScene];
             if (!scene) {
-                console.error('シーンが見つかりません:', sceneId);
+                console.error('シーンが見つかりません:', currentScene);
                 return;
             }
 
             // 背景画像を設定
-            background.style.backgroundImage = `url('images/${scene.background}')`;
+            background.style.backgroundImage = `url('${scene.background}')`;
 
             // キャラクター画像を設定
             if (scene.character) {
-                character.src = `images/${scene.character}`;
+                character.src = scene.character;
                 character.style.display = 'block';
             } else {
                 character.style.display = 'none';
             }
 
-            // ダイアログと選択肢のリセット
-            dialogue.innerHTML = '';
-            choicesContainer.innerHTML = '';
-            choicesContainer.style.display = 'none';
-            currentDialogueIndex = 0;
+            // 話者を設定
+            speaker.textContent = scene.speaker;
 
-            // Affinityチェック
-            if (affinity <= affinityThreshold && scene.id !== 'bad_end' && scene.id !== 'happy_end') {
-                loadScene('bad_end');
-                return;
+            // ダイアログをクリア
+            dialogue.innerHTML = '';
+            // 次へボタンを非表示
+            nextButton.style.display = 'none';
+            // 選択肢コンテナがあれば削除
+            const existingChoices = document.getElementById('choices-container');
+            if (existingChoices) {
+                existingChoices.remove();
             }
 
             // 会話を開始
-            showNextDialogue(scene);
+            showNextLine();
         }
 
         // 次のセリフを表示する関数
-        function showNextDialogue(scene) {
-            if (currentDialogueIndex < scene.dialogue.length) {
-                const line = scene.dialogue[currentDialogueIndex];
-                displayText(line.text, scene);
-                currentDialogueIndex++;
-            } else {
-                // 会話が終了したら選択肢を表示
-                if (scene.choices && scene.choices.length > 0) {
-                    displayChoices(scene.choices);
-                }
+        function showNextLine() {
+            const scene = scenes[currentScene];
+            if (currentLine < scene.lines.length) {
+                const line = scene.lines[currentLine];
+                typeWriter(line, () => {
+                    currentLine++;
+                    // 次のセリフがある場合はNextボタンを表示
+                    if (currentLine < scene.lines.length) {
+                        nextButton.style.display = 'block';
+                    } else {
+                        // 選択肢を表示
+                        displayChoices();
+                    }
+                });
             }
         }
 
-        // テキストを左から右に表示する関数
-        function displayText(text, scene) {
-            if (isTyping) return;
+        // タイプライター効果でテキストを表示する関数
+        function typeWriter(text, callback) {
             isTyping = true;
-            dialogue.innerHTML = ''; // 前のテキストをクリア
-
-            const span = document.createElement('span');
-            span.classList.add('typing');
-            dialogue.appendChild(span);
-
+            dialogue.innerHTML = '';
             let i = 0;
-            const speed = 50; // テキスト表示速度（ミリ秒）
-
-            const typingInterval = setInterval(() => {
+            function type() {
                 if (i < text.length) {
-                    span.textContent += text.charAt(i);
+                    dialogue.innerHTML += text.charAt(i);
                     i++;
+                    typingTimeout = setTimeout(type, textSpeed);
                 } else {
-                    clearInterval(typingInterval);
-                    span.classList.remove('typing');
                     isTyping = false;
+                    if (callback) callback();
                 }
-            }, speed);
+            }
+            type();
         }
+
+        // Nextボタンのイベントリスナー
+        nextButton.addEventListener('click', () => {
+            if (isTyping) return;
+            nextButton.style.display = 'none';
+            showNextLine();
+        });
 
         // 選択肢を表示する関数
-        function displayChoices(choices) {
-            choicesContainer.style.display = 'block';
-            choices.forEach(choice => {
-                const button = document.createElement('button');
-                button.classList.add('choice-button');
-                button.textContent = choice.text;
-                button.addEventListener('click', () => {
-                    // 好感度の変動
-                    if (choice.affinityChange !== undefined) {
-                        affinity += choice.affinityChange;
-                        // 好感度を一定の範囲内に制限
-                        if (affinity > 100) affinity = 100;
-                        if (affinity < 0) affinity = 0;
-                    }
-
-                    if (choice.nextScene) {
-                        if (choice.nextScene === 'bad_end') {
-                            loadScene(choice.nextScene);
-                        } else {
-                            loadScene(choice.nextScene);
-                        }
-                    } else {
-                        // エンディング画像を表示
-                        endingImage.style.backgroundImage = `url('images/${currentScene.background}')`;
-                        endingImage.classList.add('fade-in');
-                        endingImage.style.display = 'block';
-                        // ゲームを終了
-                        choicesContainer.innerHTML = '';
-                        dialogue.innerHTML = scene.dialogue.map(line => line.text).join('\n').replace(/○○くん/g, playerName);
-                        return;
-                    }
+        function displayChoices() {
+            const scene = scenes[currentScene];
+            if (scene.choices && scene.choices.length > 0) {
+                nextButton.style.display = 'none';
+                const choicesContainer = document.createElement('div');
+                choicesContainer.id = 'choices-container';
+                scene.choices.forEach(choice => {
+                    const button = document.createElement('button');
+                    button.classList.add('choice-button');
+                    button.textContent = choice.text;
+                    button.addEventListener('click', () => {
+                        handleChoice(choice);
+                    });
+                    choicesContainer.appendChild(button);
                 });
-                choicesContainer.appendChild(button);
-            });
+                document.getElementById('text-window').appendChild(choicesContainer);
+            }
         }
 
-        // シーンのロードを初期化
-        // 名前入力画面が表示されているので、最初はクリックで会話を進めない
-        // 名前を入力し、「決定」ボタンを押した後にシーンが開始する
+        // 選択肢を処理する関数
+        function handleChoice(choice) {
+            // 好感度を変更
+            affinity += choice.affinityChange;
+
+            // 特殊条件のチェック
+            if (choice.nextScene.startsWith('confess')) {
+                if (affinity < 30 || (affinity <= 40 && choice.text.includes('しない'))) {
+                    confessionFailed = true;
+                }
+            }
+
+            // 告白失敗条件のチェック
+            if (affinity < 30 || (affinity <= 40 && choice.text.includes('しない'))) {
+                confessionFailed = true;
+            }
+
+            // 最終週の告白条件
+            if (currentScene.startsWith('final_week') && choice.text === '告白する') {
+                if (affinity > 75 && !confessionFailed) {
+                    // 告白成功
+                    loadScene('happy_end');
+                } else {
+                    // 告白失敗
+                    loadScene('bad_end');
+                }
+                return;
+            }
+
+            // 次のシーンに進む
+            loadScene(choice.nextScene);
+        }
+
+        // エンディングの表示
+        function showEnding(sceneId) {
+            const scene = scenes[sceneId];
+            if (!scene) {
+                console.error('エンディングシーンが見つかりません:', sceneId);
+                return;
+            }
+
+            // 背景画像を設定
+            background.style.backgroundImage = `url('${scene.background}')`;
+            // キャラクターを非表示
+            character.style.display = 'none';
+            // 話者をクリア
+            speaker.textContent = '';
+
+            // ダイアログをクリア
+            dialogue.innerHTML = '';
+            // 選択肢をクリア
+            const existingChoices = document.getElementById('choices-container');
+            if (existingChoices) {
+                existingChoices.remove();
+            }
+
+            // エンディングを表示
+            showNextLine();
+
+            // エンディング終了時のボタン
+            const endButton = document.createElement('button');
+            endButton.classList.add('choice-button');
+            endButton.textContent = 'ゲーム終了';
+            endButton.addEventListener('click', () => {
+                location.reload(); // ゲームをリロード
+            });
+            document.getElementById('text-window').appendChild(endButton);
+        }
+
+        // 初期シーンのロード
+        loadScene(currentScene);
     </script>
 </body>
 </html>
